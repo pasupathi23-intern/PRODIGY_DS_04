@@ -1,0 +1,73 @@
+# Install required libraries (if needed)
+# !pip install textblob wordcloud
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud
+from textblob import TextBlob
+
+# Load dataset
+df = pd.read_csv("twitter_training.csv", names=["entity", "sentiment", "content"])
+
+# Preview data
+print(df.head())
+
+# Basic data cleaning
+df.dropna(inplace=True)
+df['content'] = df['content'].astype(str)
+
+# Sentiment scoring using TextBlob
+def get_polarity(text):
+    return TextBlob(text).sentiment.polarity
+
+df['polarity'] = df['content'].apply(get_polarity)
+
+# Categorize polarity into sentiment labels
+def label_sentiment(p):
+    if p > 0:
+        return 'Positive'
+    elif p < 0:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+df['sentiment_label'] = df['polarity'].apply(label_sentiment)
+
+# -------------------------------
+# Visualizations
+# -------------------------------
+
+# 1. Sentiment Distribution
+sns.countplot(x='sentiment_label', data=df, palette='Set2')
+plt.title("Overall Sentiment Distribution")
+plt.show()
+
+# 2. Entity-wise Sentiment
+top_entities = df['entity'].value_counts().nlargest(5).index
+filtered_df = df[df['entity'].isin(top_entities)]
+
+sns.countplot(data=filtered_df, x='entity', hue='sentiment_label', palette='Set1')
+plt.title("Sentiment by Entity")
+plt.xticks(rotation=45)
+plt.show()
+
+# 3. WordCloud for Positive Tweets
+positive_text = " ".join(df[df['sentiment_label'] == 'Positive']['content'])
+wordcloud = WordCloud(background_color='white', max_words=100).generate(positive_text)
+
+plt.figure(figsize=(10,5))
+plt.imshow(wordcloud, interpolation="bilinear")
+plt.axis("off")
+plt.title("WordCloud of Positive Tweets")
+plt.show()
+
+# 4. WordCloud for Negative Tweets
+negative_text = " ".join(df[df['sentiment_label'] == 'Negative']['content'])
+wordcloud_neg = WordCloud(background_color='black', max_words=100).generate(negative_text)
+
+plt.figure(figsize=(10,5))
+plt.imshow(wordcloud_neg, interpolation="bilinear")
+plt.axis("off")
+plt.title("WordCloud of Negative Tweets")
+plt.show()
